@@ -1,0 +1,24 @@
+﻿<UserControl x:Class="FileSync.View.WelcomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:FileSync.View"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="1100">
+    <Grid>
+        <StackPanel VerticalAlignment="Center">
+            <Image Source="../res/welcome-art.png" Stretch="None"></Image>
+            <TextBlock Text="Welcome" HorizontalAlignment="Center" Foreground="CornflowerBlue" FontSize="30"></TextBlock>
+            <TextBlock Text="FileSync enables realtime synchronization of files between multiple locations" Margin="10" MaxWidth="300" 
+                       TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Foreground="LightGray" FontSize="16"></TextBlock>
+            <Button HorizontalAlignment="Center" Margin="5" Width="100" Height="28" Command="{Binding StartCommand}"
+                      FontSize="14">
+                <TextBlock Text="Get started"/>
+            </Button>
+        </StackPanel>
+            
+        
+
+    </Grid>
+</UserControl>

@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileSync", "FileSync\FileSync.csproj", "{77E74678-8F1E-4A3B-94FB-3F9B3D2A459C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileSync.Tests", "FileSync.Tests\FileSync.Tests.csproj", "{B84C8966-A2C4-4FE4-B797-BC78BC01F5F9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{77E74678-8F1E-4A3B-94FB-3F9B3D2A459C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77E74678-8F1E-4A3B-94FB-3F9B3D2A459C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77E74678-8F1E-4A3B-94FB-3F9B3D2A459C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77E74678-8F1E-4A3B-94FB-3F9B3D2A459C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B84C8966-A2C4-4FE4-B797-BC78BC01F5F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B84C8966-A2C4-4FE4-B797-BC78BC01F5F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B84C8966-A2C4-4FE4-B797-BC78BC01F5F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B84C8966-A2C4-4FE4-B797-BC78BC01F5F9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

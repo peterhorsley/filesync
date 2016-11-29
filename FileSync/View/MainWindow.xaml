@@ -1,0 +1,21 @@
+﻿<Window x:Class="FileSync.View.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:view="clr-namespace:FileSync.View"
+        ShowInTaskbar="True" WindowStartupLocation="CenterScreen"
+        mc:Ignorable="d"
+        Icon="../res/appicon.png"
+        FontFamily="Segoe UI"
+        Title="FileSync" Height="600" Width="1100">
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo/>
+    </Window.TaskbarItemInfo>
+    <Window.Resources>
+        <SolidColorBrush x:Key="darkGrayBrush" Color="#222222"/>
+    </Window.Resources>
+    <Grid Background="{StaticResource darkGrayBrush}">
+        <view:AnimatedContentControl x:Name="View" />
+    </Grid>
+</Window>

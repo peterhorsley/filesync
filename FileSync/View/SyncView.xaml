@@ -1,0 +1,132 @@
+﻿<UserControl x:Class="FileSync.View.SyncView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:FileSync.View"
+             xmlns:converters="clr-namespace:FileSync.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="1100">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter" />
+        <SolidColorBrush x:Key="darkGrayBrush" Color="#222222"/>
+        <SolidColorBrush x:Key="lessDarkGrayBrush" Color="#444444"/>
+        <SolidColorBrush x:Key="textBush" Color="#aaaaaa"/>
+        <SolidColorBrush x:Key="textBushHighlighted" Color="#ffffff"/>
+        <Style x:Key="gridHeaderStyle" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{StaticResource textBush}"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+        <Style x:Key="gridValueStyle" TargetType="TextBlock" BasedOn="{StaticResource gridHeaderStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Enabled}" Value="true">
+                    <Setter Property="TextBlock.Foreground" Value="{StaticResource textBushHighlighted}"></Setter>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+    <Grid Background="{StaticResource darkGrayBrush}" Grid.IsSharedSizeScope="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Background="{StaticResource lessDarkGrayBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition SharedSizeGroup="A"/>
+                <ColumnDefinition SharedSizeGroup="B"/>
+                <ColumnDefinition SharedSizeGroup="C"/>
+                <ColumnDefinition SharedSizeGroup="D"/>
+                <ColumnDefinition SharedSizeGroup="E"/>
+                <ColumnDefinition SharedSizeGroup="F"/>
+                <ColumnDefinition SharedSizeGroup="G"/>
+                <ColumnDefinition SharedSizeGroup="H"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Enabled" Style="{StaticResource gridHeaderStyle}"/>
+            <TextBlock Grid.Column="1" Text="Source" Style="{StaticResource gridHeaderStyle}"/>
+            <TextBlock Grid.Column="2" Text="Destination" Style="{StaticResource gridHeaderStyle}"/>
+            <TextBlock Grid.Column="3" Text="Filter" Style="{StaticResource gridHeaderStyle}"/>
+            <TextBlock Grid.Column="4" Text="Flatten" Style="{StaticResource gridHeaderStyle}"/>
+            <TextBlock Grid.Column="5" Text="Git" Style="{StaticResource gridHeaderStyle}"/>
+            <TextBlock Grid.Column="6" Text="Edit" Style="{StaticResource gridHeaderStyle}"/>
+            <TextBlock Grid.Column="7" Text="Delete" Style="{StaticResource gridHeaderStyle}"/>
+        </Grid>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Rules}" Background="Transparent" BorderThickness="0" IsEnabled="{Binding SyncInactive}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.InputBindings>
+                                <MouseBinding Gesture="LeftClick" Command="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext.ToggleRuleEnabledCommand}" 
+                                                  CommandParameter="{Binding}"/>
+                            </Grid.InputBindings>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="A"/>
+                                <ColumnDefinition Width="*" SharedSizeGroup="B"/>
+                                <ColumnDefinition Width="*" SharedSizeGroup="C"/>
+                                <ColumnDefinition Width="*" SharedSizeGroup="D"/>
+                                <ColumnDefinition Width="*" SharedSizeGroup="E"/>
+                                <ColumnDefinition Width="*" SharedSizeGroup="F"/>
+                                <ColumnDefinition Width="*" SharedSizeGroup="G"/>
+                                <ColumnDefinition Width="*" SharedSizeGroup="H"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox Grid.Column="0" Margin="5" IsChecked="{Binding Enabled, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Source}" Style="{StaticResource gridValueStyle}">
+                            </TextBlock>
+                            <TextBlock Grid.Column="2" Text="{Binding Dest}" Style="{StaticResource gridValueStyle}">
+                            </TextBlock>
+                            <TextBlock Grid.Column="3" Text="{Binding Filters}" Style="{StaticResource gridValueStyle}"/>
+                            <TextBlock Grid.Column="4" Text="{Binding Flatten}" Style="{StaticResource gridValueStyle}"/>
+                            <TextBlock Grid.Column="5" Text="{Binding GitInfo}" Style="{StaticResource gridValueStyle}"/>
+                            <Image Grid.Column="6" Source="../res/edit.png" Stretch="Uniform" Cursor="Hand" ToolTip="Edit this rule" Width="16">
+                                <Image.InputBindings>
+                                    <MouseBinding Gesture="LeftClick" Command="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext.EditRuleCommand}" 
+                                                  CommandParameter="{Binding}"/>
+                                </Image.InputBindings>
+                            </Image>
+                            <Image Grid.Column="7" Source="../res/bin.png" Stretch="Uniform" Cursor="Hand" ToolTip="Delete this rule" Width="16">
+                                <Image.InputBindings>
+                                    <MouseBinding Gesture="LeftClick" Command="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext.DeleteRuleCommand}" 
+                                                  CommandParameter="{Binding}"/>
+                                </Image.InputBindings>
+                            </Image>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+        <Grid Grid.Row="2">
+            <StackPanel Orientation="Horizontal" Visibility="{Binding NoRulesSelected, Converter={StaticResource boolToVisibilityConverter}}">
+                <Image Source="../res/enable-arrow.png" Stretch="Uniform" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="30,0,0,0"></Image>
+                <TextBlock Text="Enable one or more rules to sync" Style="{StaticResource gridHeaderStyle}"></TextBlock>
+            </StackPanel>
+        </Grid>
+        <StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Center">
+            <ToggleButton Margin="5" Width="100" Height="28" 
+                      IsChecked="{Binding SyncActive}" IsEnabled="{Binding RuleSelected}"
+                      FontSize="14">
+                <TextBlock Text="{Binding SyncButtonText}"/>
+            </ToggleButton>
+            <Button Margin="5" Width="100" Height="28" 
+                    Command="{Binding AddRuleCommand}"
+                      IsEnabled="{Binding SyncInactive}"
+                      FontSize="14">
+                <TextBlock Text="Add rule"/>
+            </Button>
+            <Button Margin="5" Width="100" Height="28" 
+                    Command="{Binding ExclusionsCommand}"
+                      IsEnabled="{Binding SyncInactive}"
+                      FontSize="14">
+                <TextBlock Text="Exclusions"/>
+            </Button>
+        </StackPanel>
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" x:Name="LogScrollViewer" Loaded="LogScrollViewer_OnLoaded">
+            <TextBox Text="{Binding LogText}" Background="{StaticResource darkGrayBrush}" Foreground="{StaticResource textBush}" 
+                     FontSize="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" BorderThickness="0" Margin="0"/>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

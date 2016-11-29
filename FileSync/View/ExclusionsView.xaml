@@ -1,0 +1,50 @@
+﻿<UserControl x:Class="FileSync.View.ExclusionsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:FileSync.View"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="1100">
+    <Grid>
+        <StackPanel Margin="20">
+            <TextBlock Text="Exclusions" HorizontalAlignment="Left" Foreground="CornflowerBlue" FontSize="30"></TextBlock>
+            <TextBlock Text="Optionally specify any tokens to indicate file names / paths in the source that should be ignored."
+                       TextWrapping="Wrap" HorizontalAlignment="Left" Foreground="LightGray" FontSize="16"></TextBlock>
+
+            <TextBlock Text="File name exclusions" Margin="0,10,0,0"
+                       TextWrapping="Wrap" HorizontalAlignment="Left" Foreground="LightGray" FontSize="16"></TextBlock>
+            <AdornerDecorator>
+                <TextBox Margin="0,10" Width="500" HorizontalAlignment="Left" Height="130" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" FontSize="16" 
+                         Text="{Binding FileNameExclusions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <local:WatermarkService.Watermark>
+                        <TextBlock FontSize="16" Margin="5,2,0,0" TextWrapping="Wrap" Width="480" HorizontalAlignment="Left">Enter one token per line, case insensitive (e.g. .log)</TextBlock>
+                    </local:WatermarkService.Watermark>
+                </TextBox>
+            </AdornerDecorator>
+
+            <TextBlock Text="File path exclusions" Margin="0,10,0,0"
+                       TextWrapping="Wrap" HorizontalAlignment="Left" Foreground="LightGray" FontSize="16"></TextBlock>
+            <AdornerDecorator>
+                <TextBox Margin="0,10" Width="500" HorizontalAlignment="Left" Height="130" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" FontSize="16" 
+                         Text="{Binding FilePathExclusions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <local:WatermarkService.Watermark>
+                        <TextBlock FontSize="16" Margin="5,2,0,0" TextWrapping="Wrap" Width="480" HorizontalAlignment="Left">Enter one token per line, case insensitive, does not have to be rooted (e.g. /obj/)</TextBlock>
+                    </local:WatermarkService.Watermark>
+                </TextBox>
+            </AdornerDecorator>
+
+            <StackPanel Orientation="Horizontal">
+                <Button HorizontalAlignment="Center" Margin="0,10,10,10" Width="100" Height="28" Command="{Binding CancelCommand}"
+                        Visibility="{Binding CancelAvailable, Converter={StaticResource boolToVisibilityConverter}}"
+                      FontSize="14">
+                    <TextBlock Text="Cancel"/>
+                </Button>
+                <Button HorizontalAlignment="Center" Width="100" Margin="0,10" Height="28" Command="{Binding OkCommand}" 
+                      FontSize="14">
+                    <TextBlock Text="{Binding OkText}"/>
+                </Button>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>
