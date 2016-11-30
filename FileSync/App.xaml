@@ -10,6 +10,7 @@
     <ResourceDictionary>
         <converters:BoolToErrorColorConverter x:Key="boolToErrorColorConverter" />
         <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter" />
+        <converters:SyncActiveToIconOpacityConverter x:Key="syncActiveToIconOpacityConverter"/>
             <Style TargetType="{x:Type view:AnimatedContentControl}">
                 <Setter Property="Template">
                     <Setter.Value>

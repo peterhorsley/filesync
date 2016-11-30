@@ -111,6 +111,7 @@
     </ApplicationDefinition>
     <Compile Include="Converters\BoolToErrorColorConverter.cs" />
     <Compile Include="Converters\BoolToVisibilityConverter.cs" />
+    <Compile Include="Converters\SyncActiveToIconOpacityConverter.cs" />
     <Compile Include="Messages.cs" />
     <Compile Include="Model\ISyncSettingsRepository.cs" />
     <Compile Include="Model\SyncSettings.cs" />

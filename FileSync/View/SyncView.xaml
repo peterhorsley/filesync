@@ -9,6 +9,7 @@
              d:DesignHeight="600" d:DesignWidth="1100">
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="boolToVisibilityConverter" />
+        <converters:SyncActiveToIconOpacityConverter x:Key="syncActiveToIconOpacityConverter"/>
         <SolidColorBrush x:Key="darkGrayBrush" Color="#222222"/>
         <SolidColorBrush x:Key="lessDarkGrayBrush" Color="#444444"/>
         <SolidColorBrush x:Key="textBush" Color="#aaaaaa"/>
@@ -82,13 +83,15 @@
                             <TextBlock Grid.Column="3" Text="{Binding Filters}" Style="{StaticResource gridValueStyle}"/>
                             <TextBlock Grid.Column="4" Text="{Binding Flatten}" Style="{StaticResource gridValueStyle}"/>
                             <TextBlock Grid.Column="5" Text="{Binding GitInfo}" Style="{StaticResource gridValueStyle}"/>
-                            <Image Grid.Column="6" Source="../res/edit.png" Stretch="Uniform" Cursor="Hand" ToolTip="Edit this rule" Width="16">
+                            <Image Grid.Column="6" Source="../res/edit.png" Stretch="Uniform" Cursor="Hand" ToolTip="Edit this rule" Width="16"
+                                   Opacity="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext.SyncActive, Converter={StaticResource syncActiveToIconOpacityConverter}}">
                                 <Image.InputBindings>
                                     <MouseBinding Gesture="LeftClick" Command="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext.EditRuleCommand}" 
                                                   CommandParameter="{Binding}"/>
                                 </Image.InputBindings>
                             </Image>
-                            <Image Grid.Column="7" Source="../res/bin.png" Stretch="Uniform" Cursor="Hand" ToolTip="Delete this rule" Width="16">
+                            <Image Grid.Column="7" Source="../res/bin.png" Stretch="Uniform" Cursor="Hand" ToolTip="Delete this rule" Width="16"
+                                   Opacity="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext.SyncActive, Converter={StaticResource syncActiveToIconOpacityConverter}}">
                                 <Image.InputBindings>
                                     <MouseBinding Gesture="LeftClick" Command="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext.DeleteRuleCommand}" 
                                                   CommandParameter="{Binding}"/>
