@@ -2,11 +2,9 @@
 {
     using System;
     using System.Collections.ObjectModel;
-    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Windows;
-    using System.Windows.Shell;
     using FileSync.Model;
     using FileSync.View;
     using GalaSoft.MvvmLight;
@@ -31,6 +29,7 @@
         public SyncViewModel(SyncModel model)
         {
             _model = model;
+            _model.InitialCopyFailed += OnInitialCopyFailed;
             Rules = new ObservableCollection<SyncRuleViewModel>();
             foreach (var rule in _model.Settings.Rules)
             {
@@ -42,6 +41,11 @@
             UpdateSyncButtonText();
             _gitInfoTimer = new Timer(OnGitInfoTimer);
             _gitInfoTimer.Change(TimeSpan.FromSeconds(0), TimeSpan.FromMilliseconds(-1));
+        }
+
+        private void OnInitialCopyFailed(object sender, EventArgs eventArgs)
+        {
+            SyncActive = false;
         }
 
         public RelayCommand<SyncRuleViewModel> EditRuleCommand => new RelayCommand<SyncRuleViewModel>(EditRule, (r) => SyncInactive);
@@ -156,7 +160,7 @@
             get { return _logText; }
             set
             {
-                _logText = value; 
+                _logText = value;
                 RaisePropertyChanged();
             }
         }
@@ -172,7 +176,6 @@
                 {
                     _syncActive = value;
                     _model.Enable(value);
-                    LogText = "";
                     UpdateSyncButtonText();
                     RaisePropertyChanged();
                     RaisePropertyChanged("SyncInactive");
@@ -211,6 +214,7 @@
         public void Dispose()
         {
             StopGitTimer();
+            _model.InitialCopyFailed -= OnInitialCopyFailed;
         }
     }
 }

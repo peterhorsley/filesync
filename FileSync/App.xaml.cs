@@ -31,8 +31,11 @@
 
         public static bool FirstRun { get; set; }
 
+        public static bool Exiting { get; private set; }
+
         private void App_Exit(object sender, ExitEventArgs e)
         {
+            Exiting = true;
             _view?.Dispose();
         }
     }

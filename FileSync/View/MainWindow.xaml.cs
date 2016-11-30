@@ -104,19 +104,30 @@
 
         private void TitleBarAnimationThread()
         {
-            while (!_syncFinished)
+            try
             {
-                Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText + " /");
-                Thread.Sleep(100);
-                Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText + " -");
-                Thread.Sleep(100);
-                Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText + " \\");
-                Thread.Sleep(100);
-                Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText + " |");
-                Thread.Sleep(100);
-            }
+                while (!_syncFinished)
+                {
+                    Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText + " /");
+                    Thread.Sleep(100);
+                    Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText + " -");
+                    Thread.Sleep(100);
+                    Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText + " \\");
+                    Thread.Sleep(100);
+                    Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText + " |");
+                    Thread.Sleep(100);
+                }
 
-            Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText);
+                Application.Current.Dispatcher.Invoke(() => Title = _titlebarText + TitleBarActiveText);
+            }
+            catch
+            {
+                if (App.Exiting)
+                {
+                    return; // just exit
+                }
+                throw;
+            }
         }
 
         private void ShowExclusionsView()

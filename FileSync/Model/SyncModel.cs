@@ -16,7 +16,8 @@
     {
         private bool _enabled;
 
-        private readonly Dictionary<IFileSystemWatcher, SyncRule> _watchers = new Dictionary<IFileSystemWatcher, SyncRule>();
+        private readonly Dictionary<IFileSystemWatcher, SyncRule> _watchers =
+            new Dictionary<IFileSystemWatcher, SyncRule>();
 
         private readonly object _watcherLock = new object();
 
@@ -33,15 +34,15 @@
         private readonly SyncSettings _settings;
 
         private readonly IMessenger _messenger;
-        
+
         public SyncModel(ISyncSettingsRepository settingsRepository)
             : this(
-                  settingsRepository,
-                  Messenger.Default,
-                  new FileWrap(),
-                  new DirectoryWrap(),
-                  new FileSystemWatcherFactory(),
-                  new FileInfoFactory())
+                settingsRepository,
+                Messenger.Default,
+                new FileWrap(),
+                new DirectoryWrap(),
+                new FileSystemWatcherFactory(),
+                new FileInfoFactory())
         {
         }
 
@@ -89,9 +90,12 @@
 
             if (ShouldSync(e.FullPath, dest))
             {
-                Thread.Sleep(500); // Give the writing process a little breathing room to reduce the chances of file-in-use issues.
+				// Give the writing process a little breathing room to reduce the chances of file-in-use issues.
+                Thread.Sleep(500);
+                  
                 _messenger.Send(Messages.StartSync);
-                _messenger.Send(new LogMessage(string.Format("Synchronizing {0} to {1} ({2})", e.FullPath, dest, e.ChangeType)));
+                _messenger.Send(
+                    new LogMessage(string.Format("Synchronizing {0} to {1} ({2})", e.FullPath, dest, e.ChangeType)));
                 CopyFile(e.FullPath, dest);
                 _messenger.Send(Messages.StopSync);
             }
@@ -163,15 +167,26 @@
                     throw new InvalidOperationException("No sync rules specified.");
                 }
 
-                Task.Run(() =>
-                {
-                    _messenger.Send(Messages.StartSync);
-
-                    foreach (var rule in EnabledRules)
+                Task.Run(
+                    () =>
                     {
-                        foreach (var filter in rule.Filters)
+                        _messenger.Send(Messages.StartSync);
+
+                        foreach (var rule in EnabledRules)
                         {
-                            CopyFilesWithFilter(rule.Source, rule.Dest, filter);
+                            foreach (var filter in rule.Filters)
+                            {
+                                if (!CopyFilesWithFilter(rule.Source, rule.Dest, filter))
+                                {
+                                    InitialCopyFailed?.Invoke(this, new EventArgs());
+                                    _enabled = false;
+                                }
+
+                                if (!_enabled)
+                                {
+                                    break;
+                                }
+                            }
 
                             if (!_enabled)
                             {
@@ -179,39 +194,35 @@
                             }
                         }
 
-                        if (!_enabled)
+                        if (_enabled)
                         {
-                            break;
-                        }
-                    }
-
-                    if (_enabled)
-                    {
-                        lock (_watcherLock)
-                        {
-                            if (_enabled)
+                            lock (_watcherLock)
                             {
-                                foreach (var rule in EnabledRules)
+                                if (_enabled)
                                 {
-                                    _messenger.Send(new LogMessage(string.Format("Watching {0}", rule.Source)));
-
-                                    foreach (var filter in rule.Filters)
+                                    foreach (var rule in EnabledRules)
                                     {
-                                        CreateWatcher(rule, filter);
+                                        _messenger.Send(new LogMessage(string.Format("Watching {0}", rule.Source)));
+
+                                        foreach (var filter in rule.Filters)
+                                        {
+                                            CreateWatcher(rule, filter);
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    _messenger.Send(Messages.StopSync);
-                });
+                        _messenger.Send(Messages.StopSync);
+                    });
             }
             else
             {
                 DestroyWatchers();
             }
         }
+
+        public event EventHandler InitialCopyFailed;
 
         private IEnumerable<SyncRule> EnabledRules
         {
@@ -231,9 +242,18 @@
             }
         }
 
-        private void CopyFilesWithFilter(string source, string dest, string filter)
+        private bool CopyFilesWithFilter(string source, string dest, string filter)
         {
-            _directory.CreateDirectory(dest);
+            try
+            {
+                _directory.CreateDirectory(dest);
+            }
+            catch (Exception ex)
+            {
+                _messenger.Send(new LogMessage(string.Format("Failed to create directory {0}: {1}", dest, ex.Message)));
+                return false;
+            }
+            
             foreach (var sourceFile in _directory.GetFiles(source, filter, SearchOption.AllDirectories))
             {
                 if (!_enabled)
@@ -248,6 +268,8 @@
                     CopyFile(sourceFile, destPath);
                 }
             }
+
+            return true;
         }
 
         private void CopyFile(string sourceFile, string dest)
