@@ -1,8 +1,0 @@
-language: csharp
-solution: FileSync.sln
-before_install:
-  - sudo apt-get install nunit-console
-before_script:
-  - nuget restore FileSync.sln
-after_script:
-  - nunit-console FileSync.Tests/bin/Release/FileSync.Tests.dll
