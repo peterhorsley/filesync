@@ -8,7 +8,7 @@ namespace FileSync.Model
 
         public string Source;
 
-        public List<string> Filters;
+        public List<string> Filters = new List<string>();
 
         public bool Enabled;
 

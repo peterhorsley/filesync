@@ -82,6 +82,13 @@
                 Messenger.Default.Send(Messages.ShowExclusions);
             }, () => SyncInactive);
 
+        public RelayCommand AboutCommand => new RelayCommand(
+            () =>
+            {
+                ViewNavigation.Direction = Direction.Backward;
+                Messenger.Default.Send(Messages.ShowWelcome);
+            }, () => SyncInactive);
+
         private void OnGitInfoTimer(object state)
         {
             StopGitTimer();

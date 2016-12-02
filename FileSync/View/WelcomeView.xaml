@@ -14,11 +14,10 @@
                        TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Foreground="LightGray" FontSize="16"></TextBlock>
             <Button HorizontalAlignment="Center" Margin="5" Width="100" Height="28" Command="{Binding StartCommand}"
                       FontSize="14">
-                <TextBlock Text="Get started"/>
+                <TextBlock Text="{Binding ButtonText}"/>
             </Button>
+            <TextBlock Text="{Binding Version}" HorizontalAlignment="Center" Foreground="LightGray" 
+                       FontSize="12" Margin="0,10"></TextBlock>
         </StackPanel>
-            
-        
-
     </Grid>
 </UserControl>

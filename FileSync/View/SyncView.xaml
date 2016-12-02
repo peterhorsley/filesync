@@ -126,6 +126,12 @@
                       FontSize="14">
                 <TextBlock Text="Exclusions"/>
             </Button>
+            <Button Margin="5" Width="100" Height="28" 
+                    Command="{Binding AboutCommand}"
+                      IsEnabled="{Binding SyncInactive}"
+                      FontSize="14">
+                <TextBlock Text="About"/>
+            </Button>
         </StackPanel>
         <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" x:Name="LogScrollViewer" Loaded="LogScrollViewer_OnLoaded">
             <TextBox Text="{Binding LogText}" Background="{StaticResource darkGrayBrush}" Foreground="{StaticResource textBush}" 

@@ -169,7 +169,7 @@
         private void ShowWelcomeView()
         {
             App.FirstRun = true;
-            View.Content = new WelcomeView() {DataContext = new WelcomeViewModel()};
+            View.Content = new WelcomeView() {DataContext = new WelcomeViewModel(_syncModel) };
         }
 
         private void ShowSyncView()
