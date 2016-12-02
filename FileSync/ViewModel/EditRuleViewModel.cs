@@ -80,8 +80,8 @@
 
         private void SaveRule()
         {
-            _rule.Dest = _rule.Dest.ToLowerInvariant();
-            _rule.Source = _rule.Source.ToLowerInvariant();
+            _rule.Dest = _rule.Dest.ToLowerInvariant().TrimEnd('\\');
+            _rule.Source = _rule.Source.ToLowerInvariant().TrimEnd('\\');
 
             if (!_rule.Filters.Any())
             {
