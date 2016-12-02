@@ -8,3 +8,6 @@ Keeps files in one or more source locations in sync with a destination location,
 
 ### How to build
 Open solution in VS2015 and hit build.  A portable executable FileSync.exe will be created.  
+
+### Download
+Latest build available [here](https://ci.appveyor.com/api/projects/faxedhead/filesync/artifacts/FileSync/bin/Release/FileSync.exe?branch=master).
