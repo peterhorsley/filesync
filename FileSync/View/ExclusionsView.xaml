@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:FileSync.View"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="1100">
+             d:DesignHeight="600" d:DesignWidth="1100" Loaded="UserControl_Loaded">
     <Grid>
         <StackPanel Margin="20">
             <TextBlock Text="Exclusions" HorizontalAlignment="Left" Foreground="CornflowerBlue" FontSize="30"></TextBlock>
@@ -16,7 +16,7 @@
                        TextWrapping="Wrap" HorizontalAlignment="Left" Foreground="LightGray" FontSize="16"></TextBlock>
             <AdornerDecorator>
                 <TextBox Margin="0,10" Width="500" HorizontalAlignment="Left" Height="130" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" FontSize="16" 
-                         Text="{Binding FileNameExclusions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                         Text="{Binding FileNameExclusions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" x:Name="FileNameExclusionsTextBox">
                     <local:WatermarkService.Watermark>
                         <TextBlock FontSize="16" Margin="5,2,0,0" TextWrapping="Wrap" Width="480" HorizontalAlignment="Left">Enter one token per line, case insensitive (e.g. .log)</TextBlock>
                     </local:WatermarkService.Watermark>

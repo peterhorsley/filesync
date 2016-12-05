@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:FileSync.View"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="1100">
+             d:DesignHeight="600" d:DesignWidth="1100" Loaded="UserControl_Loaded">
     <Grid>
         <StackPanel VerticalAlignment="Center">
             <Image Source="../res/welcome-art.png" Stretch="None"></Image>
@@ -13,7 +13,7 @@
             <TextBlock Text="FileSync enables realtime synchronization of files between multiple locations" Margin="10" MaxWidth="300" 
                        TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Foreground="LightGray" FontSize="16"></TextBlock>
             <Button HorizontalAlignment="Center" Margin="5" Width="100" Height="28" Command="{Binding StartCommand}"
-                      FontSize="14">
+                      FontSize="14" x:Name="StartButton">
                 <TextBlock Text="{Binding ButtonText}"/>
             </Button>
             <TextBlock Text="{Binding Version}" HorizontalAlignment="Center" Foreground="LightGray" 

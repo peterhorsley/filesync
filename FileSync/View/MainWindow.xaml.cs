@@ -1,16 +1,14 @@
-﻿namespace FileSync.View
-{
-    using System;
-    using System.Linq;
-    using System.Threading;
-    using System.Windows;
-    using System.Windows.Media;
-    using System.Windows.Shapes;
-    using System.Windows.Shell;
-    using FileSync.Model;
-    using FileSync.ViewModel;
-    using GalaSoft.MvvmLight.Messaging;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Windows;
+using System.Windows.Shell;
+using FileSync.Model;
+using FileSync.ViewModel;
+using GalaSoft.MvvmLight.Messaging;
 
+namespace FileSync.View
+{
     /// <summary>
     /// Interaction logic for SyncView.xaml
     /// </summary>

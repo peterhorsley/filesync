@@ -1,6 +1,8 @@
-﻿namespace FileSync.View
+﻿using System.Windows;
+using System.Windows.Controls;
+
+namespace FileSync.View
 {
-    using System.Windows.Controls;
 
     /// <summary>
     /// Interaction logic for ExclusionsView.xaml
@@ -10,6 +12,11 @@
         public ExclusionsView()
         {
             InitializeComponent();
+        }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            FileNameExclusionsTextBox.Focus();
         }
     }
 }
