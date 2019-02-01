@@ -61,7 +61,7 @@
             // Arrange
             for (int i = 0; i < ruleCount; i++)
             {
-                _settings.Rules.Add(CreateSyncRule());
+                _settings.Rules.Add(CreateFlattenSyncRule());
             }
 
             // Act
@@ -78,7 +78,7 @@
         public void Rules_Saved()
         {
             // Arrange
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
 
             // Act
             var target = CreateTarget(_settings);
@@ -97,7 +97,7 @@
             // Arrange
             for (int i = 0; i < numberOfRules; i++)
             {
-                _settings.Rules.Add(CreateSyncRule());
+                _settings.Rules.Add(CreateFlattenSyncRule());
             }
 
             // Simulate some time for file copy
@@ -142,7 +142,7 @@
             for (var i = 0; i < numberOfRules; i++)
             {
                 var definitionIndex = i;
-                _settings.Rules.Add(CreateSyncRule());
+                _settings.Rules.Add(CreateFlattenSyncRule());
                 _watcherFactory.Setup(m => m.Create(_settings.Rules[definitionIndex].Source))
                     .Returns(() =>
                         {
@@ -199,11 +199,11 @@
         [TestCase(@"c:\source\1\2\file.EXE")]
         [TestCase(@"c:\source\1\2\file.dll")]
         [TestCase(@"c:\source\1\2\3\file.dll")]
-        public void WhenEnabled_AndMatchingFileChanged_SyncsFile(string filepath)
+        public void WhenEnabled_AndMatchingFileChanged_SyncsFile_Flattened(string filepath)
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
                 {
@@ -235,11 +235,48 @@
         [TestCase(@"c:\source\1\2\file.EXE")]
         [TestCase(@"c:\source\1\2\file.dll")]
         [TestCase(@"c:\source\1\2\3\file.dll")]
-        public void WhenEnabled_AndMatchingFileCreated_SyncsFile(string filepath)
+        public void WhenEnabled_AndMatchingFileChanged_SyncsFile_NonFlattened(string filepath)
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateNonFlattenSyncRule());
+            _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
+                .Returns(() =>
+                {
+                    var watcher = new Mock<IFileSystemWatcher>();
+                    watchers.Add(watcher);
+                    return watcher.Object;
+                });
+
+            _file.Setup(m => m.Exists(filepath)).Returns(true);
+            var target = CreateTarget(_settings);
+
+            // Act
+            target.Enable(true);
+            WaitForSyncStartThenStop();
+            _messages.Clear();
+
+            watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
+                WatcherChangeTypes.Changed, Path.GetDirectoryName(filepath), Path.GetFileName(filepath)));
+
+            WaitForSyncStartThenStop();
+
+            // Assert
+            var expectedDestFilePath = filepath.Replace(_settings.Rules[0].Source, _settings.Rules[0].Dest);
+            _file.Verify(m => m.Copy(filepath, expectedDestFilePath, true), Times.Once);
+        }
+
+        [TestCase(@"c:\source\file.exe")]
+        [TestCase(@"c:\source\1\file.exe")]
+        [TestCase(@"c:\source\1\2\file.exe")]
+        [TestCase(@"c:\source\1\2\file.EXE")]
+        [TestCase(@"c:\source\1\2\file.dll")]
+        [TestCase(@"c:\source\1\2\3\file.dll")]
+        public void WhenEnabled_AndMatchingFileCreated_SyncsFile_Flattened(string filepath)
+        {
+            // Arrange
+            var watchers = new List<Mock<IFileSystemWatcher>>();
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
                 {
@@ -265,6 +302,43 @@
             _file.Verify(m => m.Copy(filepath, Path.Combine(_settings.Rules[0].Dest, Path.GetFileName(filepath)), true), Times.Once);
         }
 
+        [TestCase(@"c:\source\file.exe")]
+        [TestCase(@"c:\source\1\file.exe")]
+        [TestCase(@"c:\source\1\2\file.exe")]
+        [TestCase(@"c:\source\1\2\file.EXE")]
+        [TestCase(@"c:\source\1\2\file.dll")]
+        [TestCase(@"c:\source\1\2\3\file.dll")]
+        public void WhenEnabled_AndMatchingFileCreated_SyncsFile_NonFlattened(string filepath)
+        {
+            // Arrange
+            var watchers = new List<Mock<IFileSystemWatcher>>();
+            _settings.Rules.Add(CreateNonFlattenSyncRule());
+            _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
+                .Returns(() =>
+                {
+                    var watcher = new Mock<IFileSystemWatcher>();
+                    watchers.Add(watcher);
+                    return watcher.Object;
+                });
+
+            _file.Setup(m => m.Exists(filepath)).Returns(true);
+            var target = CreateTarget(_settings);
+
+            // Act
+            target.Enable(true);
+            WaitForSyncStartThenStop();
+            _messages.Clear();
+
+            watchers[0].Raise(w => w.Created += null, new FileSystemEventArgs(
+                WatcherChangeTypes.Created, Path.GetDirectoryName(filepath), Path.GetFileName(filepath)));
+
+            WaitForSyncStartThenStop();
+
+            // Assert
+            var expectedDestFilePath = filepath.Replace(_settings.Rules[0].Source, _settings.Rules[0].Dest);
+            _file.Verify(m => m.Copy(filepath, expectedDestFilePath, true), Times.Once);
+        }
+
         [TestCase(@"c:\source\file.exe", "file")]
         [TestCase(@"c:\source\1\file.exe", "file.")]
         [TestCase(@"c:\source\1\2\file.exe", "e.exe")]
@@ -274,7 +348,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _settings.ExcludedFileNameTokens = new List<string> {filenameExclusionToken};
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
@@ -310,7 +384,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _settings.ExcludedFilePathTokens = new List<string> { filepathExclusionToken };
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
@@ -346,7 +420,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _settings.ExcludedFilePathTokens = new List<string> { filepathExclusionToken };
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
@@ -381,7 +455,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _settings.ExcludedFileNameTokens = new List<string> { filenameExclusionToken };
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
@@ -413,7 +487,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
                 {
@@ -465,7 +539,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
                 {
@@ -519,7 +593,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
                 {
@@ -572,7 +646,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
                 {
@@ -623,7 +697,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
                 {
@@ -662,7 +736,7 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            _settings.Rules.Add(CreateSyncRule());
+            _settings.Rules.Add(CreateFlattenSyncRule());
             _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
                 .Returns(() =>
                 {
@@ -703,8 +777,8 @@
         {
             // Arrange
             var watchers = new List<Mock<IFileSystemWatcher>>();
-            var enabledDefinition = CreateSyncRule();
-            var disabledDefinition = CreateSyncRule();
+            var enabledDefinition = CreateFlattenSyncRule();
+            var disabledDefinition = CreateFlattenSyncRule();
             disabledDefinition.Enabled = false;
             disabledDefinition.Dest = @"d:\some\disabled\dest";
             _settings.Rules.AddRange(new [] { enabledDefinition, disabledDefinition });
@@ -752,14 +826,25 @@
             _messages.Last().ShouldBeEquivalentTo(Messages.StopSync);
         }
 
-        private SyncRule CreateSyncRule()
+        private SyncRule CreateFlattenSyncRule()
+        {
+            return CreateSyncRule(true);
+        }
+
+        private SyncRule CreateNonFlattenSyncRule()
+        {
+            return CreateSyncRule(false);
+        }
+
+        private SyncRule CreateSyncRule(bool flatten)
         {
             return new SyncRule()
             {
                 Enabled = true,
                 Dest = @"c:\dest",
                 Source = @"c:\source",
-                Filters = new List<string>() {"*.exe", "*.dll"}
+                Filters = new List<string>() { "*.exe", "*.dll" },
+                Flatten = flatten
             };
         }
 

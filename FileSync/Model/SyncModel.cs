@@ -73,6 +73,7 @@
             watcher.IncludeSubdirectories = true;
             watcher.Changed += Watcher_Changed;
             watcher.Created += Watcher_Changed;
+            watcher.Renamed += Watcher_Changed;
             _watchers[watcher] = rule;
         }
 
@@ -86,7 +87,8 @@
             // Look up the original watcher - we have to check both the wrapped file system watcher and
             // the internal concrete instance unfortunately, to support mocking this via tests.
             var key = _watchers.Keys.First(w => w == sender || w.FileSystemWatcherInstance == sender);
-            var dest = Path.Combine(_watchers[key].Dest, Path.GetFileName(e.FullPath));
+
+            var dest = GetFileDest(e.FullPath, _watchers[key].Source, _watchers[key].Dest, _watchers[key].Flatten);
 
             if (ShouldSync(e.FullPath, dest))
             {
@@ -94,11 +96,26 @@
                 Thread.Sleep(500);
                   
                 _messenger.Send(Messages.StartSync);
-                _messenger.Send(
-                    new LogMessage(string.Format("Synchronizing {0} to {1} ({2})", e.FullPath, dest, e.ChangeType)));
+                _messenger.Send(new LogMessage(string.Format("Synchronizing {0} to {1} ({2})", e.FullPath, dest, e.ChangeType)));
                 CopyFile(e.FullPath, dest);
                 _messenger.Send(Messages.StopSync);
             }
+        }
+
+        private string GetFileDest(string sourceFilePath, string sourceFolder, string destFolder, bool flatten)
+        {
+            var dest = "";
+            if (flatten)
+            {
+                dest = Path.Combine(destFolder, Path.GetFileName(sourceFilePath));
+            }
+            else
+            {
+                var relativeSourcePath = sourceFilePath.Substring(sourceFolder.Length).TrimStart('\\');
+                dest = Path.Combine(destFolder, relativeSourcePath);
+            }
+
+            return dest;
         }
 
         private bool ShouldSync(string sourcePath, string destPath)
@@ -176,7 +193,7 @@
                         {
                             foreach (var filter in rule.Filters)
                             {
-                                if (!CopyFilesWithFilter(rule.Source, rule.Dest, filter))
+                                if (!CopyFilesWithFilter(rule, filter))
                                 {
                                     InitialCopyFailed?.Invoke(this, new EventArgs());
                                     _enabled = false;
@@ -237,31 +254,32 @@
                 {
                     watcher.Changed -= Watcher_Changed;
                     watcher.Created -= Watcher_Changed;
+                    watcher.Renamed -= Watcher_Changed;
                 }
                 _watchers.Clear();
             }
         }
 
-        private bool CopyFilesWithFilter(string source, string dest, string filter)
+        private bool CopyFilesWithFilter(SyncRule rule, string filter)
         {
             try
             {
-                _directory.CreateDirectory(dest);
+                _directory.CreateDirectory(rule.Dest);
             }
             catch (Exception ex)
             {
-                _messenger.Send(new LogMessage(string.Format("Failed to create directory {0}: {1}", dest, ex.Message)));
+                _messenger.Send(new LogMessage(string.Format("Failed to create directory {0}: {1}", rule.Dest, ex.Message)));
                 return false;
             }
             
-            foreach (var sourceFile in _directory.GetFiles(source, filter, SearchOption.AllDirectories))
+            foreach (var sourceFile in _directory.GetFiles(rule.Source, filter, SearchOption.AllDirectories))
             {
                 if (!_enabled)
                 {
                     break;
                 }
 
-                var destPath = Path.Combine(dest, Path.GetFileName(sourceFile));
+                var destPath = GetFileDest(sourceFile, rule.Source, rule.Dest, rule.Flatten);
                 if (ShouldSync(sourceFile, destPath))
                 {
                     _messenger.Send(new LogMessage(string.Format("Copying {0} to {1}", sourceFile, destPath)));
@@ -274,12 +292,17 @@
 
         private void CopyFile(string sourceFile, string dest)
         {
-            bool copied = false;
-            int attempts = 0;
+            var copied = false;
+            var attempts = 0;
             while (!copied)
             {
                 try
                 {
+                    var destFolder = Path.GetDirectoryName(dest);
+                    if (!_directory.Exists(destFolder))
+                    {
+                        _directory.CreateDirectory(destFolder);
+                    }
                     _file.Copy(sourceFile, dest, true);
                     copied = true;
                 }

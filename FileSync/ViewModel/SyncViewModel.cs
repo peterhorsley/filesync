@@ -65,6 +65,11 @@
                 _model.Save();
                 var index = Rules.IndexOf(ruleViewModel);
                 Rules.RemoveAt(index);
+                if (Rules.Count == 0)
+                {
+                    ViewNavigation.Direction = Direction.Backward;
+                    Messenger.Default.Send(Messages.ShowWelcome);
+                }
             }
         }
 
