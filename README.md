@@ -7,7 +7,7 @@ Windows app for realtime file synchronization
 Keeps files in one or more source locations in sync with a destination location, including optional file name and folder filtering.  If source files are in a git repository, the current branch name will be monitored and displayed in the UI.
 
 ### How to build
-Open solution in VS2015 and hit build.  A portable executable FileSync.exe will be created.  
+Open solution in VS2017 and hit build.  A portable executable FileSync.exe will be created.  
 
 ### Download
 Latest build available [here](https://ci.appveyor.com/api/projects/faxedhead/filesync/artifacts/FileSync/bin/Release/FileSync.exe?branch=master).
