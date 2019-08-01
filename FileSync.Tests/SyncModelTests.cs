@@ -1,12 +1,11 @@
 ﻿namespace FileSync.Tests
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using SystemInterface;
-    using SystemInterface.IO;
     using FileSync.Model;
     using FluentAssertions;
     using GalaSoft.MvvmLight.Messaging;
@@ -16,14 +15,6 @@
     [TestFixture]
     class SyncModelTests
     {
-        private Mock<IFile> _file;
-
-        private Mock<IDirectory> _directory;
-
-        private Mock<IFileSystemWatcherFactory> _watcherFactory;
-
-        private Mock<IFileInfoFactory> _fileInfoFactory;
-
         private SyncSettings _settings;
 
         private List<string> _messages;
@@ -31,10 +22,15 @@
         private Mock<IMessenger> _messenger;
 
         private Mock<ISyncSettingsRepository> _repository;
+        private string _testRootPath;
+        private SyncModel _target;
 
         [SetUp]
         public void Setup()
         {
+            _testRootPath = Path.Combine(Path.GetTempPath(), "FileSync-TestRun-" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss"));
+            Directory.CreateDirectory(_testRootPath);
+
             _settings = new SyncSettings()
             {
                 Rules = new List<SyncRule>(),
@@ -42,16 +38,22 @@
                 ExcludedFilePathTokens = new List<string>()
             };
 
-            _file = new Mock<IFile>();
-            _directory = new Mock<IDirectory>();
-            _watcherFactory = new Mock<IFileSystemWatcherFactory>();
-            _fileInfoFactory = new Mock<IFileInfoFactory>();
             _repository = new Mock<ISyncSettingsRepository>();
 
             _messages = new List<string>();
             _messenger = new Mock<IMessenger>();
             _messenger.Setup(m => m.Send<string>(It.IsAny<string>()))
                 .Callback<string>(message => _messages.Add(message));
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _target.Enable(false);
+            if (!string.IsNullOrEmpty(_testRootPath) && Directory.Exists(_testRootPath))
+            {
+                Directory.Delete(_testRootPath, true);
+            }
         }
 
         [TestCase(1)]
@@ -61,138 +63,58 @@
             // Arrange
             for (int i = 0; i < ruleCount; i++)
             {
-                _settings.Rules.Add(CreateFlattenSyncRule());
+                _settings.Rules.Add(CreateSyncRule(true, new List<string>()));
             }
 
             // Act
-            var target = CreateTarget(_settings);
+            CreateTarget(_settings);
 
             // Assert
-            target.Settings.Should().NotBeNull();
-            target.Settings.Rules.Should().NotBeNull().And.HaveCount(ruleCount);
-            target.Settings.ExcludedFilePathTokens.Should().NotBeNull().And.HaveCount(0);
-            target.Settings.ExcludedFileNameTokens.Should().NotBeNull().And.HaveCount(0);
+            _target.Settings.Should().NotBeNull();
+            _target.Settings.Rules.Should().NotBeNull().And.HaveCount(ruleCount);
+            _target.Settings.ExcludedFilePathTokens.Should().NotBeNull().And.HaveCount(0);
+            _target.Settings.ExcludedFileNameTokens.Should().NotBeNull().And.HaveCount(0);
         }
 
         [Test]
         public void Rules_Saved()
         {
             // Arrange
-            _settings.Rules.Add(CreateFlattenSyncRule());
+            _settings.Rules.Add(CreateSyncRule(true, new List<string>()));
 
             // Act
-            var target = CreateTarget(_settings);
+            CreateTarget(_settings);
             _settings.ExcludedFileNameTokens.Add("test");
-            target.Save();
+            _target.Save();
 
             // Assert
             _repository.Verify(m => m.Save(_settings), Times.Once);
         }
 
-        [TestCase(1)]
-        [TestCase(2)]
-        [TestCase(10)]
-        public void WhenDisabledDuringInitialSync_AbortsFileCopy_AndNoWatchersCreated(int numberOfRules)
+        [Test]
+        public void WhenEnabled_AndDestinationEmpty_SyncsAll_Flattened()
         {
             // Arrange
-            for (int i = 0; i < numberOfRules; i++)
-            {
-                _settings.Rules.Add(CreateFlattenSyncRule());
-            }
-
-            // Simulate some time for file copy
-            int fileCount = 10000;
-            int getFilesCalls = 0;
-            int maxGetFilesCalls = 0;
-            _file.Setup(m => m.Copy(It.IsAny<string>(), It.IsAny<string>(), true)).Callback(() => { Task.Delay(500); });
-            foreach (var definition in _settings.Rules)
-            {
-                foreach (var filter in definition.Filters)
-                {
-                    maxGetFilesCalls++;
-                    _directory.Setup(m => m.GetFiles(definition.Source, filter, SearchOption.AllDirectories))
-                        .Returns(Enumerable.Range(0, fileCount).Select(i => i.ToString()).ToArray()).Callback(
-                            () =>
-                            {
-                                getFilesCalls++;
-                                Task.Delay(500);
-                            });
-                }
-            }
-
-            var target = CreateTarget(_settings);
+            var rule = CreateSyncRule(true, new List<string>());
+            _settings.Rules.Add(rule);
+            var fileName = "a.txt";
+            var fileContent = "abc";
+            Directory.CreateDirectory(rule.Source);
+            File.WriteAllText(Path.Combine(rule.Source, fileName), fileContent);
+            CreateTarget(_settings);
 
             // Act
-            target.Enable(true);
-            target.Enable(false);
-            WaitForSyncStartThenStop();
+            _target.Enable(true);
+            WaitForOneSyncCycle();
+            _messages.Clear();
 
             // Assert
-            getFilesCalls.Should().BeGreaterThan(0).And.BeLessThan(maxGetFilesCalls);
-            _watcherFactory.Verify(m => m.Create(It.IsAny<string>()), Times.Never);
+            var destFilePath = Path.Combine(rule.Dest, fileName);
+            File.Exists(destFilePath).Should().BeTrue();
+            File.ReadAllText(destFilePath).Should().Be(fileContent);
         }
 
-        [TestCase(1)]
-        [TestCase(2)]
-        [TestCase(10)]
-        public void WhenEnabled_PerformsInitialSync_AndCreatesWatchers(int numberOfRules)
-        {
-            // Arrange
-            var watchers = new List<Mock<IFileSystemWatcher>>();
-            for (var i = 0; i < numberOfRules; i++)
-            {
-                var definitionIndex = i;
-                _settings.Rules.Add(CreateFlattenSyncRule());
-                _watcherFactory.Setup(m => m.Create(_settings.Rules[definitionIndex].Source))
-                    .Returns(() =>
-                        {
-                            var watcher = new Mock<IFileSystemWatcher>();
-                            watchers.Add(watcher);
-                            return watcher.Object;
-                        });
-            }
-
-            // Mock file copy
-            int fileCount = 3;
-            int getFilesCalls = 0;
-            int expectedGetFilesCalls = 0;
-            _file.Setup(m => m.Copy(It.IsAny<string>(), It.IsAny<string>(), true)).Callback(() => { Task.Delay(10); });
-            foreach (var definition in _settings.Rules)
-            {
-                foreach (var filter in definition.Filters)
-                {
-                    expectedGetFilesCalls++;
-                    _directory.Setup(m => m.GetFiles(definition.Source, filter, SearchOption.AllDirectories))
-                        .Returns(Enumerable.Range(0, fileCount).Select(i => i.ToString()).ToArray()).Callback(
-                        () => getFilesCalls++);
-                }
-            }
-
-            var target = CreateTarget(_settings);
-
-            // Act
-            target.Enable(true);
-            WaitForSyncStartThenStop();
-
-            // Assert
-            getFilesCalls.Should().Be(expectedGetFilesCalls);
-
-            int watcherIndex = 0;
-            int expectedWatcherCount = 0;
-            foreach (var definition in _settings.Rules)
-            {
-                foreach (var filter in definition.Filters)
-                {
-                    expectedWatcherCount++;
-                    expectedWatcherCount.Should().BeLessOrEqualTo(watchers.Count);
-                    watchers[watcherIndex].VerifySet(m => m.EnableRaisingEvents = true);
-                    watchers[watcherIndex].VerifySet(m => m.IncludeSubdirectories = true);
-                    watchers[watcherIndex].VerifySet(m => m.Filter = filter);
-                    watcherIndex++;
-                }
-            }
-        }
-
+        /*
         [TestCase(@"c:\source\file.exe")]
         [TestCase(@"c:\source\1\file.exe")]
         [TestCase(@"c:\source\1\2\file.exe")]
@@ -202,33 +124,25 @@
         public void WhenEnabled_AndMatchingFileChanged_SyncsFile_Flattened(string filepath)
         {
             // Arrange
-            var watchers = new List<Mock<IFileSystemWatcher>>();
             _settings.Rules.Add(CreateFlattenSyncRule());
-            _watcherFactory.Setup(m => m.Create(_settings.Rules[0].Source))
-                .Returns(() =>
-                {
-                    var watcher = new Mock<IFileSystemWatcher>();
-                    watchers.Add(watcher);
-                    return watcher.Object;
-                });
-
+            _directory.Setup(m => m.GetFiles(_settings.Rules[0].Source, "*.*", SearchOption.AllDirectories)).Returns(new [] { filepath });
+            _fileInfoFactory.Setup(m => m.Create(filepath)).Returns(new FileInfoWrap())
             _file.Setup(m => m.Exists(filepath)).Returns(true);
             var target = CreateTarget(_settings);
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Changed, Path.GetDirectoryName(filepath), Path.GetFileName(filepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             _file.Verify(m => m.Copy(filepath, Path.Combine(_settings.Rules[0].Dest, Path.GetFileName(filepath)), true), Times.Once);
         }
-
         [TestCase(@"c:\source\file.exe")]
         [TestCase(@"c:\source\1\file.exe")]
         [TestCase(@"c:\source\1\2\file.exe")]
@@ -253,13 +167,13 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Changed, Path.GetDirectoryName(filepath), Path.GetFileName(filepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             var expectedDestFilePath = filepath.Replace(_settings.Rules[0].Source, _settings.Rules[0].Dest);
@@ -290,13 +204,13 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Created += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Created, Path.GetDirectoryName(filepath), Path.GetFileName(filepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             _file.Verify(m => m.Copy(filepath, Path.Combine(_settings.Rules[0].Dest, Path.GetFileName(filepath)), true), Times.Once);
@@ -326,13 +240,13 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Created += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Created, Path.GetDirectoryName(filepath), Path.GetFileName(filepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             var expectedDestFilePath = filepath.Replace(_settings.Rules[0].Source, _settings.Rules[0].Dest);
@@ -363,7 +277,7 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
@@ -399,7 +313,7 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
@@ -435,13 +349,13 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Changed, Path.GetDirectoryName(filepath), Path.GetFileName(filepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             _file.Verify(m => m.Copy(filepath, Path.Combine(_settings.Rules[0].Dest, Path.GetFileName(filepath)), true), Times.Once);
@@ -470,13 +384,13 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Changed, Path.GetDirectoryName(filepath), Path.GetFileName(filepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             _file.Verify(m => m.Copy(filepath, Path.Combine(_settings.Rules[0].Dest, Path.GetFileName(filepath)), true), Times.Once);
@@ -522,7 +436,7 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
@@ -576,13 +490,13 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Changed, Path.GetDirectoryName(sourceFilepath), Path.GetFileName(sourceFilepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             _file.Verify(m => m.Copy(sourceFilepath, destFilepath, true), Times.Once);
@@ -629,13 +543,13 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Changed, Path.GetDirectoryName(sourceFilepath), Path.GetFileName(sourceFilepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             _file.Verify(m => m.Copy(sourceFilepath, destFilepath, true), Times.Once);
@@ -680,13 +594,13 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Changed, Path.GetDirectoryName(sourceFilepath), Path.GetFileName(sourceFilepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             _file.Verify(m => m.Copy(sourceFilepath, destFilepath, true), Times.Once);
@@ -719,13 +633,13 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
                 WatcherChangeTypes.Changed, Path.GetDirectoryName(sourceFilepath), Path.GetFileName(sourceFilepath)));
 
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             _file.Verify(m => m.Copy(sourceFilepath, destFilepath, true), Times.Once);
@@ -760,7 +674,7 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
             _messages.Clear();
 
             watchers[0].Raise(w => w.Changed += null, new FileSystemEventArgs(
@@ -803,64 +717,46 @@
 
             // Act
             target.Enable(true);
-            WaitForSyncStartThenStop();
+            WaitForOneSyncCycle();
 
             // Assert
             _directory.Verify(m => m.CreateDirectory(enabledDefinition.Dest));
             _directory.Verify(m => m.CreateDirectory(disabledDefinition.Dest), Times.Never);
         }
+        */
 
-        private void WaitForSyncStartThenStop()
+        private void WaitForOneSyncCycle()
         {
-            int millisecondsToWait = 2000;
+            int millisecondsToWait = 5000;
             int millisecondsWaited = 0;
             int checkIntervalMs = 100;
-            while (!_messages.Contains(Messages.StartSync) || !_messages.Contains(Messages.StopSync) || _messages.Count < 2)
+            while (!_messages.Contains(Messages.StopSync))
             {
                 Thread.Sleep(checkIntervalMs);
                 millisecondsWaited += checkIntervalMs;
                 millisecondsWaited.Should().BeLessThan(millisecondsToWait);
             }
-
-            _messages.First().ShouldBeEquivalentTo(Messages.StartSync);
-            _messages.Last().ShouldBeEquivalentTo(Messages.StopSync);
         }
 
-        private SyncRule CreateFlattenSyncRule()
-        {
-            return CreateSyncRule(true);
-        }
-
-        private SyncRule CreateNonFlattenSyncRule()
-        {
-            return CreateSyncRule(false);
-        }
-
-        private SyncRule CreateSyncRule(bool flatten)
+        private SyncRule CreateSyncRule(bool flatten, List<string> filters)
         {
             return new SyncRule()
             {
                 Enabled = true,
-                Dest = @"c:\dest",
-                Source = @"c:\source",
-                Filters = new List<string>() { "*.exe", "*.dll" },
+                Dest = Path.Combine(_testRootPath, "dest"),
+                Source = Path.Combine(_testRootPath, "source"),
+                Filters = filters,
                 Flatten = flatten
             };
         }
 
-        private SyncModel CreateTarget(SyncSettings settings)
+        private void CreateTarget(SyncSettings settings)
         {
             _repository.Setup(m => m.Load()).Returns(settings);
 
-            var target = new SyncModel(
+            _target = new SyncModel(
                 _repository.Object,
-                _messenger.Object,
-                _file.Object,
-                _directory.Object,
-                _watcherFactory.Object,
-                _fileInfoFactory.Object);
-
-            return target;
+                _messenger.Object);
         }
     }
 }

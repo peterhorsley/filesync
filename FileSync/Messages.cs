@@ -8,6 +8,8 @@
         public const string ShowSync = "ShowSync";
         public const string StartSync = "StartSync";
         public const string StopSync = "StopSync";
+        public const string StartCopy = "StartCopy";
+        public const string StopCopy = "StopCopy";
         public const string AddRule = "AddRule";
         public const string ShowExclusions = "ShowExclusions";
         public const string ShowWelcome = "ShowWelcome";

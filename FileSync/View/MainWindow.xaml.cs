@@ -70,13 +70,13 @@ namespace FileSync.View
                         case Messages.SyncInactive:
                             Title = _titlebarText;
                             break;
-                        case Messages.StartSync:
+                        case Messages.StartCopy:
                             _syncFinished = false;
                             StartTitleBarAnimationThread();
                             TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Indeterminate;
                             _progressTimer.Change(_minTaskbarAnimationTimeMs, 1000);
                             break;
-                        case Messages.StopSync:
+                        case Messages.StopCopy:
                             _syncFinished = true;
                             break;
                         case Messages.AddRule:

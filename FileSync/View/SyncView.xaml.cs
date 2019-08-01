@@ -14,23 +14,5 @@ namespace FileSync.View
         {
             InitializeComponent();
         }
-
-        private void LogScrollViewer_OnLoaded(object sender, RoutedEventArgs e)
-        {
-            var childCount = VisualTreeHelper.GetChildrenCount(LogScrollViewer);
-            if (childCount == 0)
-            {
-                return;
-            }
-
-            var grid = VisualTreeHelper.GetChild(LogScrollViewer, 0);
-            var rect = VisualTreeHelper.GetChild(grid, 0) as Rectangle;
-            if (rect == null)
-            {
-                return;
-            }
-
-            rect.Fill = new SolidColorBrush(Colors.Transparent);
-        }
     }
 }

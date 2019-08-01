@@ -133,9 +133,7 @@
                 <TextBlock Text="About"/>
             </Button>
         </StackPanel>
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" x:Name="LogScrollViewer" Loaded="LogScrollViewer_OnLoaded">
-            <TextBox Text="{Binding LogText}" Background="{StaticResource darkGrayBrush}" Foreground="{StaticResource textBush}" IsReadOnly="true"
-                     FontSize="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" BorderThickness="0" Margin="0"/>
-        </ScrollViewer>
+        <TextBox  Grid.Row="3" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding LogText}" Background="{StaticResource darkGrayBrush}" Foreground="{StaticResource textBush}" IsReadOnly="true"
+                 FontSize="14" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" BorderThickness="0" Margin="20"/>
     </Grid>
 </UserControl>

@@ -29,7 +29,6 @@
         public SyncViewModel(SyncModel model)
         {
             _model = model;
-            _model.InitialCopyFailed += OnInitialCopyFailed;
             Rules = new ObservableCollection<SyncRuleViewModel>();
             foreach (var rule in _model.Settings.Rules)
             {
@@ -41,11 +40,6 @@
             UpdateSyncButtonText();
             _gitInfoTimer = new Timer(OnGitInfoTimer);
             _gitInfoTimer.Change(TimeSpan.FromSeconds(0), TimeSpan.FromMilliseconds(-1));
-        }
-
-        private void OnInitialCopyFailed(object sender, EventArgs eventArgs)
-        {
-            SyncActive = false;
         }
 
         public RelayCommand<SyncRuleViewModel> EditRuleCommand => new RelayCommand<SyncRuleViewModel>(EditRule, (r) => SyncInactive);
@@ -164,7 +158,14 @@
 
         private void OnLogMessageReceived(LogMessage message)
         {
-            LogText = string.Format("[{1}] {2}{0}{3}", Environment.NewLine, DateTime.Now, message.Text, LogText);
+            if (string.IsNullOrEmpty(message.Text))
+            {
+                LogText = "";
+            }
+            else
+            {
+                LogText = string.Format("[{0}] {1}", DateTime.Now, message.Text);
+            }
         }
 
         public string LogText
@@ -226,7 +227,6 @@
         public void Dispose()
         {
             StopGitTimer();
-            _model.InitialCopyFailed -= OnInitialCopyFailed;
         }
     }
 }
